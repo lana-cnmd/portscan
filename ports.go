@@ -13,8 +13,10 @@ func Ports(ports ...uint16) (PortSpec, error) {
 		if port == 0 {
 			return PortSpec{}, &InvalidPortError{Port: port}
 		}
+
 		validPorts = append(validPorts, port)
 	}
+
 	return PortSpec{ports: validPorts}, nil
 }
 
@@ -22,12 +24,8 @@ func Ports(ports ...uint16) (PortSpec, error) {
 // Возвращает *InvalidPortError, если start или end равен 0.
 // Возвращает *InvalidRangeError, если start > end.
 func Range(start, end uint16) (PortSpec, error) {
-	if start == 0 {
-		return PortSpec{}, &InvalidPortError{Port: start}
-	}
-
-	if end == 0 {
-		return PortSpec{}, &InvalidPortError{Port: end}
+	if start == 0 || end == 0 {
+		return PortSpec{}, &InvalidPortError{Port: 0}
 	}
 
 	if start > end {
@@ -42,4 +40,31 @@ func Range(start, end uint16) (PortSpec, error) {
 	validPorts = append(validPorts, end)
 
 	return PortSpec{ports: validPorts}, nil
+}
+
+func mergePorts(portSpecs ...PortSpec) ([]uint16, error) {
+	if len(portSpecs) == 0 {
+		return []uint16{}, ErrNoPorts
+	}
+
+	var mergedPorts []uint16
+	for _, pSpec := range portSpecs {
+		mergedPorts = append(mergedPorts, pSpec.ports...)
+	}
+
+	portsMap := make(map[uint16]struct{}, len(mergedPorts))
+
+	deduplicated := make([]uint16, 0, len(portsMap))
+	for _, port := range mergedPorts {
+		if _, ok := portsMap[port]; !ok {
+			deduplicated = append(deduplicated, port)
+			portsMap[port] = struct{}{}
+		}
+	}
+
+	if len(deduplicated) == 0 {
+		return []uint16{}, ErrNoPorts
+	}
+
+	return deduplicated, nil
 }

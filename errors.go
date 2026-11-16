@@ -13,6 +13,12 @@ var (
 	// ErrNoPorts возвращается методом Scan,
 	// если не задано ни одного порта или все PortSpec оказались пустыми.
 	ErrNoPorts = errors.New("portscan: no ports to scan")
+	// ErrNilResolver возвращается методом WithResolver,
+	// если резолвер нил.
+	ErrNilResolver = errors.New("portscan: resolver must not be nil")
+	// ErrEmptyHost возвращается методом validateAndDeduplicateHosts,
+	// если в списке хостов есть пустая строка.
+	ErrEmptyHost = errors.New("portscan: empty host in targets")
 )
 
 // InvalidPortError описывает ошибку невалидного значения порта.

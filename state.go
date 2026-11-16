@@ -5,7 +5,7 @@ type State int
 
 const (
 	// StateOpen - TCP-соединение установлено.
-	StateOpen State = iota
+	StateOpen State = iota + 1
 	// StateClosed - соединение явно отклонено (RST/ECONNREFUSED).
 	StateClosed
 	// StateTimeout - подключение не завершилось за установленное время.

@@ -21,14 +21,21 @@ func TestPorts(t *testing.T) {
 			expectedErr:   nil,
 		},
 		{
+			name:          "Success - one port",
+			ports:         []uint16{80},
+			expectedPorts: []uint16{80},
+			expectedErr:   nil,
+		},
+		{
 			name:        "Invalid port error",
 			ports:       []uint16{0, 3, 80},
 			expectedErr: &InvalidPortError{Port: 0},
 		},
 		{
-			name:        "Empty port",
-			ports:       []uint16{},
-			expectedErr: nil,
+			name:          "Empty port",
+			ports:         []uint16{},
+			expectedPorts: []uint16{},
+			expectedErr:   nil,
 		},
 		{
 			name:          "Duplicated ports",
@@ -110,7 +117,14 @@ func TestRange(t *testing.T) {
 			switch expected := tc.expectedErr.(type) {
 			case nil:
 				require.NoError(t, err)
-				assert.Equal(t, tc.expectedPorts, res.ports)
+
+				if tc.name == "Full range 1-65535" {
+					require.Len(t, res.ports, 65535)
+					assert.Equal(t, uint16(1), res.ports[0])
+					assert.Equal(t, uint16(65535), res.ports[len(res.ports)-1])
+				} else {
+					assert.Equal(t, tc.expectedPorts, res.ports)
+				}
 			case *InvalidPortError:
 				var actual *InvalidPortError
 				require.ErrorAs(t, err, &actual)
@@ -123,7 +137,59 @@ func TestRange(t *testing.T) {
 			default:
 				t.Fatalf("unexpected expectedErr type: %T", tc.expectedErr)
 			}
+		})
+	}
+}
 
+func TestMergePorts(t *testing.T) {
+	tt := []struct {
+		name          string
+		portSpecs     []PortSpec
+		expectedPorts []uint16
+		expectedErr   error
+	}{
+		{
+			name:          "Success - one spec",
+			portSpecs:     []PortSpec{{ports: []uint16{1, 2, 3}}},
+			expectedPorts: []uint16{1, 2, 3},
+			expectedErr:   nil,
+		},
+		{
+			name:          "Success - multiple specs",
+			portSpecs:     []PortSpec{{ports: []uint16{80}}, {ports: []uint16{443}}},
+			expectedPorts: []uint16{80, 443},
+			expectedErr:   nil,
+		},
+		{
+			name:          "Deduplication",
+			portSpecs:     []PortSpec{{ports: []uint16{80, 80}}, {ports: []uint16{80, 443}}},
+			expectedPorts: []uint16{80, 443},
+			expectedErr:   nil,
+		},
+		{
+			name:          "Empty variadic",
+			portSpecs:     nil,
+			expectedPorts: []uint16{},
+			expectedErr:   ErrNoPorts,
+		},
+		{
+			name:          "All specs empty",
+			portSpecs:     []PortSpec{{}, {}},
+			expectedPorts: []uint16{},
+			expectedErr:   ErrNoPorts,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := mergePorts(tc.portSpecs...)
+			if tc.expectedErr != nil {
+				require.ErrorIs(t, err, tc.expectedErr)
+				assert.Equal(t, tc.expectedPorts, res)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectedPorts, res)
+			}
 		})
 	}
 }
